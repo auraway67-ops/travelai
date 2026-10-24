@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Meet AURA WAY: a calmer way to travel, with a 3D route preview, traffic insights, and fuel stops along the way."
+    />
+    <meta name="theme-color" content="#f5f5f0" />
+    <title>AURA WAY — Make every mile feel lighter</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="script.js" defer></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="#home" aria-label="AURA WAY home">
+        <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
+        <span>AURA <strong>WAY</strong></span>
+      </a>
+      <nav class="main-nav" aria-label="Main navigation">
+        <a href="#features">Features</a>
+        <a href="#map-preview">Map preview</a>
+        <a href="#about">Our idea</a>
+      </nav>
+      <a class="header-cta" href="planner.html">Plan a trip <span aria-hidden="true">↗</span></a>
+    </header>
+
+    <main>
+      <section class="hero" id="home">
+        <div class="hero-copy">
+          <p class="eyebrow"><span class="eyebrow-dot"></span> A NEW WAY TO GET THERE</p>
+          <h1>Make every<br />mile feel <span>lighter.</span></h1>
+          <p class="hero-description">
+            See the road ahead in a whole new way. AURA WAY brings your route,
+            traffic, and nearby fuel stops together in one clearer view.
+          </p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="planner.html">Plan your trip <span aria-hidden="true">↗</span></a>
+            <a class="text-link" href="#features">See what’s inside <span aria-hidden="true">↓</span></a>
+          </div>
+          <div class="hero-note">
+            <span class="note-icon" aria-hidden="true">✳</span>
+            <span>For the detours, the discoveries, and the way there.</span>
+          </div>
+        </div>
+
+        <div class="map-stage" id="map-preview">
+          <div class="map-card">
+            <div class="map-topline">
+              <div>
+                <span class="map-kicker">YOUR JOURNEY, AT A GLANCE</span>
+                <h2>Route preview</h2>
+              </div>
+              <span class="preview-badge"><span></span> PREVIEW</span>
+            </div>
+            <div class="map-viewport" id="map-viewport" data-view="3d">
+              <div class="map-surface" aria-hidden="true">
+                <div class="map-park park-one"><span>RIVERSIDE<br />GARDENS</span></div>
+                <div class="map-park park-two"></div>
+                <div class="map-water"></div>
+                <div class="map-block block-one"></div>
+                <div class="map-block block-two"></div>
+                <div class="map-block block-three"></div>
+                <div class="map-block block-four"></div>
+                <div class="map-block block-five"></div>
+                <div class="map-block block-six"></div>
+                <svg class="roads" viewBox="0 0 640 430" preserveAspectRatio="none">
+                  <path class="minor-road" d="M-20 82 C140 106 180 30 330 60 S500 116 670 66" />
+                  <path class="minor-road" d="M36 -10 C58 96 16 145 88 244 S116 355 86 460" />
+                  <path class="minor-road" d="M460 -20 C428 82 514 142 458 232 S418 350 466 456" />
+                  <path class="minor-road" d="M-30 324 C104 274 190 342 300 290 S510 268 674 330" />
+                  <path class="minor-road" d="M168 -24 C204 80 142 170 214 252 S278 366 252 454" />
+                  <path class="major-road-edge" d="M-30 210 C104 170 188 218 282 180 S468 124 674 174" />
+                  <path class="major-road" d="M-30 210 C104 170 188 218 282 180 S468 124 674 174" />
+                  <path class="route-shadow" d="M-30 210 C104 170 188 218 282 180 S468 124 674 174" />
+                  <path class="route-line" d="M-30 210 C104 170 188 218 282 180 S468 124 674 174" />
+                </svg>
+                <span class="street-label street-one">NORTH LOOP</span>
+                <span class="street-label street-two">RIVER ROAD</span>
+                <span class="street-label street-three">OAK STREET</span>
+                <div class="map-pin start-pin"><span class="pin-core"></span><span class="pin-label">YOU ARE HERE</span></div>
+                <div class="map-pin end-pin"><span class="pin-core"></span><span class="pin-label">DOWNTOWN</span></div>
+                <div class="map-pin fuel-pin fuel-one"><span class="fuel-icon">↗</span><span class="fuel-label">FUEL</span></div>
+                <div class="map-pin fuel-pin fuel-two"><span class="fuel-icon">↗</span><span class="fuel-label">FUEL</span></div>
+                <div class="traffic-chip traffic-one"><span></span> SLOW AHEAD</div>
+                <div class="traffic-chip traffic-two"><span></span> MOVING WELL</div>
+              </div>
+              <div class="map-live-note"><span></span> Concept map · Sample route</div>
+              <div class="map-controls" aria-label="Map preview controls">
+                <button class="map-control is-active" type="button" data-mode="3d" aria-pressed="true">3D</button>
+                <button class="map-control" type="button" data-layer="traffic" aria-pressed="true">Traffic</button>
+                <button class="map-control" type="button" data-layer="fuel" aria-pressed="true">Fuel stops</button>
+              </div>
+              <div class="compass" aria-hidden="true"><span>↑</span><small>N</small></div>
+            </div>
+            <div class="route-summary">
+              <div class="route-destination"><span class="destination-dot"></span><span><small>DESTINATION</small><strong>Downtown</strong></span></div>
+              <span class="summary-divider"></span>
+              <div class="route-stat"><strong>18 <small>min</small></strong><span>estimated</span></div>
+              <div class="route-stat"><strong>8.4 <small>mi</small></strong><span>to go</span></div>
+              <span class="route-arrow" aria-hidden="true">↗</span>
+            </div>
+          </div>
+          <div class="floating-note note-traffic"><span class="mini-traffic"></span><span><strong>Know what’s ahead</strong><small>Traffic, at a glance</small></span></div>
+          <div class="floating-note note-fuel"><span class="mini-fuel">↗</span><span><strong>Find a fuel stop</strong><small>Along your route</small></span></div>
+          <div class="stage-decoration" aria-hidden="true">A</div>
+        </div>
+      </section>
+
+      <section class="feature-strip" id="features" aria-label="AURA WAY features">
+        <div class="strip-intro"><span>THE ROAD, REIMAGINED</span><p>Everything you need.<br />Nothing in your way.</p></div>
+        <article class="feature-item">
+          <span class="feature-number">01</span>
+          <span class="feature-icon icon-map" aria-hidden="true">⌖</span>
+          <h3>See the bigger picture</h3>
+          <p>A 3D-style map preview helps bring the places around your route to life.</p>
+        </article>
+        <article class="feature-item">
+          <span class="feature-number">02</span>
+          <span class="feature-icon icon-traffic" aria-hidden="true"><i></i><i></i><i></i></span>
+          <h3>Look ahead with ease</h3>
+          <p>Get a clearer view of traffic conditions on the journey ahead.</p>
+        </article>
+        <article class="feature-item">
+          <span class="feature-number">03</span>
+          <span class="feature-icon icon-fuel" aria-hidden="true">↗</span>
+          <h3>Make room for a stop</h3>
+          <p>Spot nearby fuel stations and keep your next stop in mind.</p>
+        </article>
+      </section>
+
+      <section class="closing" id="about">
+        <span class="closing-spark" aria-hidden="true">✳</span>
+        <p>THE JOURNEY IS YOURS</p>
+        <h2>Find your own<br /><em>way forward.</em></h2>
+        <a class="button button-dark" href="#map-preview">Get to know AURA WAY <span aria-hidden="true">↗</span></a>
+        <span class="closing-orbit orbit-one" aria-hidden="true"></span>
+        <span class="closing-orbit orbit-two" aria-hidden="true"></span>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <a class="brand footer-brand" href="#home" aria-label="AURA WAY home">
+        <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
+        <span>AURA <strong>WAY</strong></span>
+      </a>
+      <span>A little more clarity for wherever you’re headed.</span>
+      <span>© 2026 AURA WAY · Concept preview</span>
+    </footer>
+  </body>
+</html>

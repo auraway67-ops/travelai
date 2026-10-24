@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Plan your whole road trip with AURA WAY: easy routes, viewpoints, budget stays, EV chargers, fuel stops, weather safety and a full itinerary." />
+    <meta name="theme-color" content="#f5f5f0" />
+    <title>AURA WAY Trip Planner</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="planner.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+    <script src="planner.js" defer></script>
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <a class="brand" href="index.html" aria-label="AURA WAY home">
+          <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
+          <span>AURA <strong>WAY</strong></span>
+        </a>
+        <span class="topbar-note">Trip planner</span>
+      </header>
+
+      <aside class="panel">
+        <form class="trip-form" id="trip-form" autocomplete="off">
+          <p class="kicker">Where are you headed?</p>
+
+          <label class="field">
+            <span>From</span>
+            <span class="place-input">
+              <input id="from" name="from" placeholder="City, address or place" required />
+              <button class="icon-btn" type="button" id="locate" title="Use my location" aria-label="Use my location">⌖</button>
+            </span>
+            <ul class="suggestions" data-for="from"></ul>
+          </label>
+
+          <label class="field">
+            <span>To</span>
+            <span class="place-input">
+              <input id="to" name="to" placeholder="Destination" required />
+              <button class="icon-btn" type="button" id="swap" title="Swap from and to" aria-label="Swap from and to">⇅</button>
+            </span>
+            <ul class="suggestions" data-for="to"></ul>
+          </label>
+
+          <div class="row-3">
+            <label class="field"><span>Start date</span><input type="date" id="date" required /></label>
+            <label class="field"><span>Nights</span><input type="number" id="nights" min="0" max="20" value="2" required /></label>
+            <label class="field"><span>Travellers</span><input type="number" id="travelers" min="1" max="20" value="2" required /></label>
+          </div>
+
+          <div class="row">
+            <label class="field">
+              <span>Vehicle</span>
+              <select id="vehicle">
+                <option value="petrol">Petrol car</option>
+                <option value="diesel">Diesel car</option>
+                <option value="ev">Electric (EV)</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Range on a full tank / charge (km)</span>
+              <input type="number" id="range" min="50" max="2000" value="550" />
+            </label>
+          </div>
+
+          <button class="btn btn-primary" type="submit" id="plan-btn">Plan my trip ↗</button>
+          <div id="form-msg" aria-live="polite"></div>
+        </form>
+
+        <nav class="tabs" role="tablist" aria-label="Trip sections">
+          <button class="tab" role="tab" aria-selected="true" data-tab="routes">Routes<span class="count" data-count="routes"></span></button>
+          <button class="tab" role="tab" aria-selected="false" data-tab="stops">Stops<span class="count" data-count="stops"></span></button>
+          <button class="tab" role="tab" aria-selected="false" data-tab="stays">Stays<span class="count" data-count="stays"></span></button>
+          <button class="tab" role="tab" aria-selected="false" data-tab="weather">Weather</button>
+          <button class="tab" role="tab" aria-selected="false" data-tab="budget">Budget</button>
+          <button class="tab" role="tab" aria-selected="false" data-tab="plan">Itinerary</button>
+        </nav>
+
+        <section class="tab-panel" data-panel="routes">
+          <div class="empty">Enter where you're starting and where you're going. AURA WAY finds the fastest, shortest and easiest routes to drive.</div>
+        </section>
+
+        <section class="tab-panel" data-panel="stops" hidden>
+          <div class="empty">Viewpoints, EV chargers and fuel stations along your route will show here.</div>
+        </section>
+
+        <section class="tab-panel" data-panel="stays" hidden>
+          <div class="empty">Budget-friendly places to stay at your destination will show here, plus overnight stops on long drives.</div>
+        </section>
+
+        <section class="tab-panel" data-panel="weather" hidden>
+          <div class="empty">We'll check the weather along your route for your travel dates and flag anything unsafe.</div>
+        </section>
+
+        <section class="tab-panel" data-panel="budget" hidden>
+          <div class="budget-grid">
+            <label class="field">
+              <span>Currency</span>
+              <select id="currency">
+                <option>AED</option><option>USD</option><option>EUR</option><option>GBP</option><option>INR</option><option>SAR</option>
+              </select>
+            </label>
+            <label class="field"><span id="consumption-label">Fuel use (L / 100 km)</span><input type="number" id="consumption" step="0.1" min="0" value="8" /></label>
+            <label class="field"><span id="energy-price-label">Fuel price (per litre)</span><input type="number" id="energy-price" step="0.01" min="0" /></label>
+            <label class="field"><span>Hotel per room / night</span><input type="number" id="hotel-price" step="1" min="0" /></label>
+            <label class="field"><span>Rooms</span><input type="number" id="rooms" min="1" max="10" value="1" /></label>
+            <label class="field"><span>Food per person / day</span><input type="number" id="food-price" step="1" min="0" /></label>
+            <label class="field"><span>Tolls, parking, tickets</span><input type="number" id="extras" step="1" min="0" value="0" /></label>
+            <label class="check" style="align-self:end;padding-bottom:10px"><input type="checkbox" id="return-trip" checked /> Include drive home</label>
+          </div>
+          <p class="kicker" style="margin-top:4px">Starting prices are typical averages. Change them to match your own.</p>
+          <div id="budget-out"></div>
+        </section>
+
+        <section class="tab-panel" data-panel="plan" hidden>
+          <p class="kicker">Full day-by-day plan</p>
+          <div class="row">
+            <label class="field">
+              <span>Budget style</span>
+              <select id="budget-level">
+                <option value="budget">Budget</option>
+                <option value="mid-range" selected>Mid-range</option>
+                <option value="comfort">Comfort</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Pace</span>
+              <select id="pace">
+                <option value="relaxed">Relaxed</option>
+                <option value="balanced" selected>Balanced</option>
+                <option value="packed">Packed</option>
+              </select>
+            </label>
+          </div>
+          <div class="field">
+            <span>Interests</span>
+            <div class="interests" id="interests">
+              <button type="button" class="chip" aria-pressed="true" data-interest="scenic viewpoints">Viewpoints</button>
+              <button type="button" class="chip" aria-pressed="true" data-interest="local food">Food</button>
+              <button type="button" class="chip" aria-pressed="false" data-interest="nature and hiking">Nature</button>
+              <button type="button" class="chip" aria-pressed="false" data-interest="history and culture">Culture</button>
+              <button type="button" class="chip" aria-pressed="false" data-interest="beaches">Beaches</button>
+              <button type="button" class="chip" aria-pressed="false" data-interest="family friendly">Family</button>
+              <button type="button" class="chip" aria-pressed="false" data-interest="shopping">Shopping</button>
+            </div>
+          </div>
+          <label class="field"><span>Anything else?</span><textarea id="notes" placeholder="e.g. travelling with a toddler, no long hikes, vegetarian"></textarea></label>
+          <button class="btn btn-lime" type="button" id="itinerary-btn">Build my itinerary ✳</button>
+          <div id="plan-out"></div>
+        </section>
+      </aside>
+
+      <main class="map-wrap">
+        <div id="map" role="application" aria-label="Interactive trip map"></div>
+        <div class="map-legend" aria-hidden="true">
+          <span><i class="dot dot-view"></i>Viewpoint</span>
+          <span><i class="dot dot-hotel"></i>Stay</span>
+          <span><i class="dot dot-ev"></i>EV charger</span>
+          <span><i class="dot dot-fuel"></i>Fuel</span>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>
