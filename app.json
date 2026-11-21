@@ -16,6 +16,14 @@
         "backgroundColor": "#d9f06a"
       },
       "edgeToEdgeEnabled": true
-    }
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "AURA WAY uses your location to start trip routes from where you are."
+        }
+      ]
+    ]
   }
 }

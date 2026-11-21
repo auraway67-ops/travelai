@@ -13,7 +13,7 @@ export function mapsUrl(lat, lon, name) {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 }
 
-export function buildMapHtml({ context, selectedRoute, hiddenKinds = [] }) {
+export function buildMapHtml({ context, places = context.places, selectedRoute, hiddenKinds = [] }) {
   const data = {
     origin: context.origin,
     destination: context.destination,
@@ -21,7 +21,7 @@ export function buildMapHtml({ context, selectedRoute, hiddenKinds = [] }) {
     selected: selectedRoute,
     kinds: PLACE_KINDS,
     hidden: hiddenKinds,
-    places: context.places.map((p) => ({
+    places: places.map((p) => ({
       kind: p.kind,
       lat: p.lat,
       lon: p.lon,

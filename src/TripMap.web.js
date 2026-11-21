@@ -3,10 +3,10 @@ import { StyleSheet, View } from "react-native";
 import { buildMapHtml } from "./mapHtml";
 
 // Web build: react-native-webview isn't available, so render the same map page in an iframe.
-export default function TripMap({ context, selectedRoute, hiddenKinds, height = 420 }) {
+export default function TripMap({ context, places, selectedRoute, hiddenKinds, height = 420 }) {
   const html = useMemo(
-    () => buildMapHtml({ context, selectedRoute, hiddenKinds }),
-    [context, selectedRoute, hiddenKinds]
+    () => buildMapHtml({ context, places, selectedRoute, hiddenKinds }),
+    [context, places, selectedRoute, hiddenKinds]
   );
 
   return (

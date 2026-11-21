@@ -1,22 +1,21 @@
 import { useState } from "react";
-import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import TripMap from "./TripMap";
 import { PLACE_KINDS, mapsUrl } from "./mapHtml";
 import { measurePlaces } from "./tripContext";
 import { COLORS, formatMoney } from "./theme";
 
 // Typical consumption, used only to estimate the cost of the drive.
-const PETROL_L_PER_100KM = 7;
-const EV_KWH_PER_100KM = 18;
+export const PETROL_L_PER_100KM = 7;
+export const EV_KWH_PER_100KM = 18;
 
-function formatDuration(minutes) {
+export function formatDuration(minutes) {
   const h = Math.floor(minutes / 60);
   const m = Math.round(minutes % 60);
   return h ? `${h}h ${m}m` : `${m}m`;
 }
 
-export default function RouteSection({ context, plan, input }) {
-  const [selected, setSelected] = useState(0);
+export default function RouteSection({ context, plan, input, selected, onSelect, places: routePlaces, placesLoading, placesError }) {
   const [hidden, setHidden] = useState([]);
 
   if (!context) {
@@ -35,7 +34,7 @@ export default function RouteSection({ context, plan, input }) {
       : (route.distanceKm / 100) * PETROL_L_PER_100KM * roadTrip.fuelPricePerLitre
     : null;
 
-  const places = measurePlaces(context.places, route, context.destination);
+  const places = measurePlaces(routePlaces, route, context.destination);
   const onRoute = places.filter((p) => route && p.offKm <= 3 && (p.kind === (ev ? "ev" : "fuel") || p.kind === "viewpoint"));
   const nearDestination = places
     .filter((p) => p.kind === "stay" || (p.kind === "viewpoint" && p.fromDestKm <= 25))
@@ -49,7 +48,7 @@ export default function RouteSection({ context, plan, input }) {
   return (
     <>
       <View style={styles.mapWrap}>
-        <TripMap context={context} selectedRoute={selected} hiddenKinds={hidden} height={360} />
+        <TripMap context={context} places={routePlaces} selectedRoute={selected} hiddenKinds={hidden} height={360} />
       </View>
       <View style={styles.kinds}>
         {Object.entries(PLACE_KINDS).map(([kind, meta]) => {
@@ -69,7 +68,7 @@ export default function RouteSection({ context, plan, input }) {
           {context.routes.map((r, index) => (
             <Pressable
               key={index}
-              onPress={() => setSelected(index)}
+              onPress={() => onSelect(index)}
               accessibilityRole="radio"
               accessibilityState={{ checked: selected === index }}
               style={[styles.route, selected === index && styles.routeSelected]}
@@ -107,6 +106,13 @@ export default function RouteSection({ context, plan, input }) {
         <Text style={styles.message}>{context.errors.routes ?? "No driving route was found."}</Text>
       ) : null}
 
+      {placesLoading ? (
+        <View style={styles.loading}>
+          <ActivityIndicator color={COLORS.green} />
+          <Text style={styles.loadingText}>Finding stops along this route…</Text>
+        </View>
+      ) : null}
+
       {onRoute.length > 0 && (
         <View style={styles.card}>
           <Text style={styles.label}>STOPS ALONG THE WAY</Text>
@@ -125,7 +131,7 @@ export default function RouteSection({ context, plan, input }) {
         </View>
       )}
 
-      {context.errors.places ? <Text style={styles.message}>Nearby places: {context.errors.places}</Text> : null}
+      {placesError ? <Text style={styles.message}>Nearby places: {placesError}</Text> : null}
       <Text style={styles.credit}>Map data © OpenStreetMap contributors. Routes by OSRM.</Text>
     </>
   );
@@ -159,6 +165,8 @@ const styles = StyleSheet.create({
   swatch: { width: 9, height: 9, borderRadius: 5 },
   kindText: { color: COLORS.ink, fontSize: 12, fontWeight: "600" },
   kindTextOff: { color: "#a0a79f" },
+  loading: { flexDirection: "row", alignItems: "center", gap: 9, marginTop: 12 },
+  loadingText: { color: COLORS.muted, fontSize: 13 },
   card: { marginTop: 10, padding: 15, borderWidth: 1, borderColor: COLORS.line, borderRadius: 8, backgroundColor: COLORS.white },
   label: { marginBottom: 7, color: "#869087", fontSize: 10, fontWeight: "700", letterSpacing: 1 },
   route: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 6, padding: 11, borderWidth: 1, borderColor: COLORS.line, borderRadius: 7 },

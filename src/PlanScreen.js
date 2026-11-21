@@ -1,5 +1,8 @@
 import { useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import * as Location from "expo-location";
+import PlaceInput, { FieldButton } from "./PlaceInput";
+import { reverseGeocode } from "./services/geo";
 import { COLORS } from "./theme";
 
 const BUDGETS = ["Budget", "Comfort", "Luxury"];
@@ -11,6 +14,8 @@ const TRAVEL_MODES = [
   { id: "ev", label: "Electric car" },
 ];
 const INTERESTS = ["Food", "Culture", "Nature", "Nightlife", "Shopping", "Beaches", "Adventure", "Relaxing", "Family"];
+// Typical distance on a full tank or charge, used for the range check.
+const DEFAULT_RANGE_KM = { petrol: 550, ev: 380 };
 
 function isValidDate(value) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -18,9 +23,9 @@ function isValidDate(value) {
   return !Number.isNaN(date.getTime()) && date.toISOString().startsWith(value);
 }
 
-function Field({ label, children, hint }) {
+function Field({ label, children, hint, style }) {
   return (
-    <View style={styles.field}>
+    <View style={[styles.field, style]}>
       <Text style={styles.label}>{label}</Text>
       {children}
       {hint ? <Text style={styles.hint}>{hint}</Text> : null}
@@ -69,8 +74,13 @@ function Stepper({ value, onChange, min, max, unit }) {
 
 export default function PlanScreen({ onPlan, loading, progress, error, connected }) {
   const [destination, setDestination] = useState("");
+  const [destinationPlace, setDestinationPlace] = useState(null);
   const [origin, setOrigin] = useState("");
+  const [originPlace, setOriginPlace] = useState(null);
+  const [locating, setLocating] = useState(false);
+  const [locateError, setLocateError] = useState(null);
   const [travelMode, setTravelMode] = useState("any");
+  const [range, setRange] = useState("");
   const [startDate, setStartDate] = useState("");
   const [days, setDays] = useState(4);
   const [travelers, setTravelers] = useState(2);
@@ -81,6 +91,8 @@ export default function PlanScreen({ onPlan, loading, progress, error, connected
 
   const dateProblem = startDate.trim() && !isValidDate(startDate.trim()) ? "Use the format YYYY-MM-DD." : null;
   const canSubmit = destination.trim().length > 1 && !dateProblem && !loading;
+  const driving = travelMode === "petrol" || travelMode === "ev";
+  const rangeKm = Math.min(2000, Math.max(50, Number(range) || DEFAULT_RANGE_KM[travelMode] || DEFAULT_RANGE_KM.petrol));
 
   function toggleInterest(interest) {
     setInterests((current) =>
@@ -88,12 +100,41 @@ export default function PlanScreen({ onPlan, loading, progress, error, connected
     );
   }
 
+  function swapPlaces() {
+    setOrigin(destination);
+    setOriginPlace(destinationPlace);
+    setDestination(origin);
+    setDestinationPlace(originPlace);
+  }
+
+  async function useMyLocation() {
+    setLocateError(null);
+    setLocating(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") throw new Error("Location access was blocked. Type your starting point instead.");
+      const { coords } = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const place =
+        (await reverseGeocode(coords.latitude, coords.longitude).catch(() => null)) ??
+        { name: "My location", area: "", fullName: "My location", lat: coords.latitude, lon: coords.longitude };
+      setOrigin(place.fullName);
+      setOriginPlace(place);
+    } catch (error) {
+      setLocateError(error.message || "Couldn't find your location.");
+    } finally {
+      setLocating(false);
+    }
+  }
+
   function submit() {
     if (!canSubmit) return;
     onPlan({
       destination: destination.trim(),
+      destinationPlace,
       origin: origin.trim(),
+      originPlace,
       travelMode,
+      rangeKm,
       startDate: startDate.trim(),
       days,
       travelers,
@@ -121,19 +162,38 @@ export default function PlanScreen({ onPlan, loading, progress, error, connected
         </View>
       )}
 
-      <Field label="DESTINATION">
-        <TextInput
-          value={destination}
-          onChangeText={setDestination}
-          placeholder="Lisbon, Kyoto, the Scottish Highlands…"
-          placeholderTextColor="#a3a9a1"
-          style={styles.input}
-          returnKeyType="next"
+      <Field label="TRAVELLING FROM" hint={locateError ?? "Optional. Adds driving routes and stops on the way."}>
+        <PlaceInput
+          value={origin}
+          onChangeText={(text) => {
+            setOrigin(text);
+            setOriginPlace(null);
+          }}
+          onPick={(place) => {
+            setOrigin(place.fullName);
+            setOriginPlace(place);
+          }}
+          placeholder="City, address or place"
+          accessory={
+            <FieldButton label="Use my location" icon={locating ? "…" : "⌖"} disabled={locating} onPress={useMyLocation} />
+          }
         />
       </Field>
 
-      <Field label="TRAVELLING FROM" hint="Optional. Helps plan how you get there.">
-        <TextInput value={origin} onChangeText={setOrigin} placeholder="Your home city" placeholderTextColor="#a3a9a1" style={styles.input} />
+      <Field label="DESTINATION">
+        <PlaceInput
+          value={destination}
+          onChangeText={(text) => {
+            setDestination(text);
+            setDestinationPlace(null);
+          }}
+          onPick={(place) => {
+            setDestination(place.fullName);
+            setDestinationPlace(place);
+          }}
+          placeholder="Lisbon, Kyoto, the Scottish Highlands…"
+          accessory={<FieldButton label="Swap from and to" icon="⇅" onPress={swapPlaces} />}
+        />
       </Field>
 
       <Field label="HOW YOU'D LIKE TO TRAVEL">
@@ -143,6 +203,23 @@ export default function PlanScreen({ onPlan, loading, progress, error, connected
           ))}
         </View>
       </Field>
+
+      {driving && (
+        <Field
+          label={travelMode === "ev" ? "RANGE ON A FULL CHARGE (KM)" : "RANGE ON A FULL TANK (KM)"}
+          hint="Used to warn you about long stretches with no fuel or chargers."
+        >
+          <TextInput
+            value={range}
+            onChangeText={(text) => setRange(text.replace(/[^0-9]/g, ""))}
+            placeholder={String(DEFAULT_RANGE_KM[travelMode])}
+            placeholderTextColor="#a3a9a1"
+            style={styles.input}
+            keyboardType="number-pad"
+            maxLength={4}
+          />
+        </Field>
+      )}
 
       <Field label="START DATE" hint={dateProblem ?? "Optional. Leave blank if your dates are flexible."}>
         <TextInput
@@ -157,10 +234,10 @@ export default function PlanScreen({ onPlan, loading, progress, error, connected
       </Field>
 
       <View style={styles.row}>
-        <Field label="LENGTH">
+        <Field label="LENGTH" style={styles.flex}>
           <Stepper value={days} onChange={setDays} min={1} max={14} unit={days === 1 ? "day" : "days"} />
         </Field>
-        <Field label="TRAVELLERS">
+        <Field label="TRAVELLERS" style={styles.flex}>
           <Stepper value={travelers} onChange={setTravelers} min={1} max={12} unit={travelers === 1 ? "person" : "people"} />
         </Field>
       </View>
@@ -228,7 +305,8 @@ const styles = StyleSheet.create({
   notice: { marginTop: 12, padding: 12, borderRadius: 6, backgroundColor: "#f3f0dc", borderWidth: 1, borderColor: "#e6e0bd" },
   noticeTitle: { color: "#6d6431", fontSize: 12, fontWeight: "700" },
   noticeText: { marginTop: 3, color: "#7d7651", fontSize: 12, lineHeight: 17 },
-  field: { flex: 1, marginTop: 18 },
+  field: { marginTop: 18 },
+  flex: { flex: 1 },
   label: { marginBottom: 7, color: "#7f887f", fontSize: 10, fontWeight: "700", letterSpacing: 1 },
   hint: { marginTop: 5, color: "#9aa198", fontSize: 11 },
   hintCenter: { marginTop: 9, color: "#8a9389", fontSize: 12, textAlign: "center" },

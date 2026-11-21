@@ -3,10 +3,10 @@ import { Linking, StyleSheet, View } from "react-native";
 import { WebView } from "react-native-webview";
 import { buildMapHtml } from "./mapHtml";
 
-export default function TripMap({ context, selectedRoute, hiddenKinds, height = 420 }) {
+export default function TripMap({ context, places, selectedRoute, hiddenKinds, height = 420 }) {
   const html = useMemo(
-    () => buildMapHtml({ context, selectedRoute, hiddenKinds }),
-    [context, selectedRoute, hiddenKinds]
+    () => buildMapHtml({ context, places, selectedRoute, hiddenKinds }),
+    [context, places, selectedRoute, hiddenKinds]
   );
 
   return (

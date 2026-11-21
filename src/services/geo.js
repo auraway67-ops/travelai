@@ -1,9 +1,12 @@
 // Live map data from free, keyless OpenStreetMap services:
-// Nominatim (place search), OSRM (road routing) and Overpass (points of interest).
+// Nominatim (place lookup), Photon (search-as-you-type), OSRM (road routing)
+// and Overpass (points of interest).
 // The public instances are fair-use only; move to self-hosted or paid
 // instances before shipping to real users.
 
 const NOMINATIM = "https://nominatim.openstreetmap.org/search";
+// Nominatim's usage policy forbids autocomplete, so suggestions come from Photon.
+const PHOTON = "https://photon.komoot.io";
 // Two public OSRM servers with the same API; the second is tried if the first is unreachable.
 const OSRM = ["https://router.project-osrm.org/route/v1/driving", "https://routing.openstreetmap.de/routed-car/route/v1/driving"];
 const OVERPASS = "https://overpass-api.de/api/interpreter";
@@ -37,6 +40,27 @@ export async function geocode(query) {
     lat: Number(hit.lat),
     lon: Number(hit.lon),
   };
+}
+
+function placeFromFeature(feature) {
+  const p = feature.properties;
+  const name = p.name || p.street || p.city || "Selected place";
+  // Cities are often their own state too ("Lisbon, Lisbon"), so drop repeats.
+  const area = [...new Set([p.city, p.state, p.country])].filter((part) => part && part !== name).join(", ");
+  const [lon, lat] = feature.geometry.coordinates;
+  return { name, area, fullName: area ? `${name}, ${area}` : name, lat, lon };
+}
+
+// Place suggestions as the traveller types.
+export async function searchPlaces(query, limit = 5) {
+  const data = await getJson(`${PHOTON}/api/?q=${encodeURIComponent(query)}&limit=${limit}&lang=en`, {}, 10000);
+  return (data.features ?? []).map(placeFromFeature);
+}
+
+export async function reverseGeocode(lat, lon) {
+  const data = await getJson(`${PHOTON}/reverse?lat=${lat}&lon=${lon}&lang=en`, {}, 10000);
+  const feature = data.features?.[0];
+  return feature ? { ...placeFromFeature(feature), lat, lon } : null;
 }
 
 // Keeps the first and last point and an even spread in between.
@@ -171,8 +195,18 @@ function toPlace(element) {
     named: Boolean(t.name),
     details: describe(kind, t),
     website: t.website || t["contact:website"] || null,
+    // OpenStreetMap has no prices, so stays are ranked by type and stars. Lower is cheaper.
+    budgetRank: kind === "stay" ? ({ hostel: 0, camp_site: 0, guest_house: 1, motel: 1 }[t.tourism] ?? (Number(t.stars) || 3)) : null,
   };
 }
+
+// Budget, mid-range or upscale, from a stay's budgetRank.
+export function stayTier(rank) {
+  return rank <= 1 ? "Budget" : rank <= 3 ? "Mid-range" : "Upscale";
+}
+
+// Drives longer than this also get stays around the halfway point, for an overnight stop.
+export const OVERNIGHT_KM = 450;
 
 // Fuel pumps, EV chargers, viewpoints and budget-friendly stays along the
 // route corridor (when there is a route) and around the destination.
@@ -183,12 +217,15 @@ export async function findPlaces({ destination, route }) {
     line
       ? `(nwr${tag}(around:${corridorM},${line});nwr${tag}(around:${areaM},${dest}););`
       : `nwr${tag}(around:${areaM},${dest});`;
+  const stays = (radiusM, at) =>
+    `nwr["tourism"~"^(hostel|guest_house|motel)$"](around:${radiusM},${at});nwr["tourism"="hotel"]["stars"~"^[12]"](around:${radiusM},${at});`;
+  const midpoint = route && route.distanceKm > OVERNIGHT_KM ? route.coords[Math.floor(route.coords.length / 2)] : null;
 
   const query = `[out:json][timeout:45];
 ${near('["amenity"="fuel"]', 1500, 6000)}out center 150;
 ${near('["amenity"="charging_station"]', 2500, 8000)}out center 150;
 ${near('["tourism"="viewpoint"]', 5000, 25000)}out center 120;
-(nwr["tourism"~"^(hostel|guest_house|motel)$"](around:10000,${dest});nwr["tourism"="hotel"]["stars"~"^[12]"](around:10000,${dest}););out center 100;`;
+(${stays(10000, dest)}${midpoint ? stays(12000, `${midpoint[0].toFixed(4)},${midpoint[1].toFixed(4)}`) : ""});out center 140;`;
 
   const data = await getJson(OVERPASS, {
     method: "POST",

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import RoadBudget from "./RoadBudget";
 import RouteSection from "./RouteSection";
 import WeatherSection from "./WeatherSection";
 import { COLORS, ITEM_STYLES, formatMoney } from "./theme";
@@ -159,26 +160,29 @@ function ItinerarySection({ plan, input }) {
   );
 }
 
-function BudgetSection({ plan }) {
+function BudgetSection({ plan, input, route, tripId }) {
   const largest = Math.max(...plan.budget.map((line) => line.amount), 1);
   return (
-    <Card>
-      <Text style={styles.cardLabel}>ESTIMATED TOTAL</Text>
-      <Text style={styles.budgetTotal}>{formatMoney(plan.totalEstimate, plan.currency)}</Text>
-      <Text style={styles.muted}>For the whole group, before transport to your destination is booked.</Text>
-      {plan.budget.map((line, index) => (
-        <View key={`${index}-${line.category}`} style={styles.budgetLine}>
-          <View style={styles.budgetRow}>
-            <Text style={styles.budgetCategory}>{line.category}</Text>
-            <Text style={styles.budgetAmount}>{formatMoney(line.amount, plan.currency)}</Text>
+    <>
+      <Card>
+        <Text style={styles.cardLabel}>ESTIMATED TOTAL</Text>
+        <Text style={styles.budgetTotal}>{formatMoney(plan.totalEstimate, plan.currency)}</Text>
+        <Text style={styles.muted}>For the whole group, before transport to your destination is booked.</Text>
+        {plan.budget.map((line, index) => (
+          <View key={`${index}-${line.category}`} style={styles.budgetLine}>
+            <View style={styles.budgetRow}>
+              <Text style={styles.budgetCategory}>{line.category}</Text>
+              <Text style={styles.budgetAmount}>{formatMoney(line.amount, plan.currency)}</Text>
+            </View>
+            <View style={styles.budgetTrack}>
+              <View style={[styles.budgetFill, { width: `${(line.amount / largest) * 100}%` }]} />
+            </View>
+            {line.note ? <Text style={styles.budgetNote}>{line.note}</Text> : null}
           </View>
-          <View style={styles.budgetTrack}>
-            <View style={[styles.budgetFill, { width: `${(line.amount / largest) * 100}%` }]} />
-          </View>
-          {line.note ? <Text style={styles.budgetNote}>{line.note}</Text> : null}
-        </View>
-      ))}
-    </Card>
+        ))}
+      </Card>
+      {route ? <RoadBudget key={tripId} route={route} plan={plan} input={input} /> : null}
+    </>
   );
 }
 
@@ -231,7 +235,7 @@ function PrepSection({ plan }) {
   );
 }
 
-export default function TripScreen({ trip, saved, onToggleSave, onNewPlan }) {
+export default function TripScreen({ trip, saved, onToggleSave, onNewPlan, routeIndex, onSelectRoute, routePlaces }) {
   const [section, setSection] = useState("days");
 
   if (!trip) {
@@ -306,9 +310,21 @@ export default function TripScreen({ trip, saved, onToggleSave, onNewPlan }) {
       </ScrollView>
 
       {section === "days" && <ItinerarySection plan={plan} input={input} />}
-      {section === "route" && <RouteSection key={trip.id} context={trip.context} plan={plan} input={input} />}
+      {section === "route" && (
+        <RouteSection
+          key={trip.id}
+          context={trip.context}
+          plan={plan}
+          input={input}
+          selected={routeIndex}
+          onSelect={onSelectRoute}
+          places={routePlaces.places}
+          placesLoading={routePlaces.loading}
+          placesError={routePlaces.error}
+        />
+      )}
       {section === "weather" && <WeatherSection context={trip.context} plan={plan} />}
-      {section === "budget" && <BudgetSection plan={plan} />}
+      {section === "budget" && <BudgetSection plan={plan} input={input} route={trip.context?.routes?.[routeIndex]} tripId={trip.id} />}
       {section === "packing" && <PackingSection key={trip.id} plan={plan} />}
       {section === "prep" && <PrepSection plan={plan} />}
 

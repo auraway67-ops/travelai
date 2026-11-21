@@ -31,20 +31,66 @@ export function measurePlaces(places, route, destination) {
     .sort((a, b) => (route ? a.alongKm - b.alongKm : a.fromDestKm - b.fromDestKm));
 }
 
+// The longest stretch of the route with no fuel station (or charger), and where it starts.
+export function longestGap(stops, totalKm) {
+  const kms = [0, ...stops.map((p) => p.alongKm).sort((a, b) => a - b), totalKm];
+  let gap = 0;
+  let at = 0;
+  for (let i = 1; i < kms.length; i++) {
+    if (kms[i] - kms[i - 1] > gap) {
+      gap = kms[i] - kms[i - 1];
+      at = kms[i - 1];
+    }
+  }
+  return { gap, at };
+}
+
+// Whether the car can cover the route between the known fuel stops or chargers.
+// level: 0 = fine, 1 = plan top-ups, 2 = range risk (same scale as the weather).
+export function rangeCheck(places, route, rangeKm, ev) {
+  const what = ev ? "charger" : "fuel station";
+  const fill = ev ? "charge" : "tank";
+  if (route.distanceKm < rangeKm * 0.7) {
+    return { level: 0, title: "Range is fine", text: `The whole drive (${Math.round(route.distanceKm)} km) fits in one ${fill}. Top up before you leave.` };
+  }
+  const stops = places.filter((p) => p.kind === (ev ? "ev" : "fuel") && p.offKm <= 3);
+  const { gap, at } = longestGap(stops, route.distanceKm);
+  const km = Math.round(gap);
+  if (gap > rangeKm * 0.8) {
+    return {
+      level: 2,
+      title: "Range risk",
+      text: `There's a ${km} km stretch with no ${what} we know of (from about km ${Math.round(at)}), close to or over your ${rangeKm} km range. Start it with a full ${fill} or pick another route.`,
+    };
+  }
+  if (gap > rangeKm * 0.55) {
+    return { level: 1, title: "Plan your top-ups", text: `The longest stretch without a ${what} is ${km} km (from about km ${Math.round(at)}). Fill up before it.` };
+  }
+  return { level: 0, title: "Range is fine", text: `The longest stretch without a ${what} is ${km} km, well within your ${rangeKm} km range.` };
+}
+
+// Stops along a route other than the first, which the trip context already covers.
+export function loadRoutePlaces(context, routeIndex) {
+  return findPlaces({ destination: context.destination, route: context.routes[routeIndex] });
+}
+
 export async function loadTripContext(input, onProgress = () => {}) {
   const context = { destination: null, origin: null, routes: [], places: [], weather: null, errors: {} };
 
   onProgress("Finding your destination on the map");
   try {
-    context.destination = await geocode(input.destination);
+    // A place picked from the suggestions already has coordinates.
+    context.destination = input.destinationPlace ?? (await geocode(input.destination));
   } catch (error) {
     context.errors.destination = message(error);
     return context;
   }
 
-  if (input.origin) {
+  if (input.originPlace) {
+    context.origin = input.originPlace;
+  } else if (input.origin) {
     // Nominatim allows one request per second.
-    await wait(1100);
+    if (!input.destinationPlace) await wait(1100);
     try {
       context.origin = await geocode(input.origin);
     } catch (error) {

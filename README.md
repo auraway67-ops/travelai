@@ -15,7 +15,7 @@ Trips can be saved on the device.
 
 | Part | What it is |
 | --- | --- |
-| `App.js`, `src/` | The Expo (React Native) app: Plan, Trip, Map, Stops and Saved tabs |
+| `App.js`, `src/` | The Expo (React Native) app: Plan, Trip, Map, Stops and Saved tabs. It has everything the web planner has. |
 | `server/` | The planner service. It asks Claude (`claude-opus-5-5`) for the trip plan and keeps the API key off the phone. It also serves the web pages. |
 | `planner.html`, `planner.js`, `planner.css` | The web version of the planner |
 | `index.html`, `styles.css`, `script.js` | The landing page |
@@ -60,4 +60,4 @@ Without `EXPO_PUBLIC_API_URL`, the app runs in **sample mode**. It builds a clea
 
 - Prices, opening hours and availability in AI plans are estimates. The plan tells travellers what to confirm before booking.
 - A plan usually takes under a minute to generate. Each one is a single Claude API call, which costs a few cents.
-- The Map and Stops tabs are the original concept screens and still use illustrative sample data.
+- The Map and Stops tabs show the live map, stops and stays for the trip you planned. Pick a route on any tab and the others follow.
